@@ -2,6 +2,7 @@
 
 Season::Season(const uint8_t& year) : year_(year) {}
 Season::~Season() {}
+std::vector<Seed> Season::get_seeds() const { return seeds_; }
 
 Summer::Summer(const uint8_t& year) : Season(year) {
   (void)year;
@@ -14,5 +15,3 @@ Summer::Summer(const uint8_t& year) : Season(year) {
             {{"Cosmos", 30, 6, 0, 30}},      {{"Pear", 400, 14, 3, 45 * 3}},
             {{"Peach", 400, 14, 3, 45 * 3}}};
 }
-
-std::vector<Seed> Summer::get_seeds() const { return seeds_; }

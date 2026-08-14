@@ -21,28 +21,27 @@ protected:
   
 };
 
-class Spring : public Season {
- public:
-  Spring(const uint8_t& year);
-  std::vector<Seed> get_seeds() const override;
-};
+// class Spring : public Season {
+//  public:
+//   Spring(const uint8_t& year);
+//   std::vector<Seed> get_seeds() const override;
+// };
 
 class Summer : public Season {
  public:
   Summer(const uint8_t& year);
-  std::vector<Seed> get_seeds() const override;
 };
 
-class Fall : public Season {
- public:
-  Fall(const uint8_t& year);
-  std::vector<Seed> get_seeds() const override;
-};
+// class Fall : public Season {
+//  public:
+//   Fall(const uint8_t& year);
+//   std::vector<Seed> get_seeds() const override;
+// };
 
-class Winter : public Season {
- public:
-  Winter(const uint8_t& year);
-  std::vector<Seed> get_seeds() const override;
-};
+// class Winter : public Season {
+//  public:
+//   Winter(const uint8_t& year);
+//   std::vector<Seed> get_seeds() const override;
+// };
 
 #endif  // FOM_FARM_OPTIMIZER__SEASON_HPP_

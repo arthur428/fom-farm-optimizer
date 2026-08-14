@@ -14,7 +14,12 @@ class Seed {
     uint16_t sell_price;
   };
 
+
   Seed(const Data& data);
+
+  Data get_data() const;
+  uint32_t get_profit() const;
+  void set_profit(const uint32_t& profit);
 
  private:
   std::string name_;
@@ -22,6 +27,7 @@ class Seed {
   uint8_t growth_days_;
   uint8_t regrowth_days_;
   uint16_t sell_price_;
+  uint32_t profit_;
 };
 
 #endif  // FOM_FARM_OPTIMIZER__SEED_HPP_
