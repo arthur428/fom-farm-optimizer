@@ -7,14 +7,14 @@
 
 class Player {
  public:
-  Player(const uint64_t& stamina, const int64_t& money);
+  Player(const int64_t& stamina, const int64_t& money);
 
-  void buy_seed(const Seed& seed);
-  uint64_t get_stamina() const;
+  // void buy_seed(const Seed& seed);
+  int64_t get_stamina() const;
   int64_t get_money() const;
 
  private:
-  uint64_t stamina_;
+  int64_t stamina_;
   int64_t money_;
 };
 

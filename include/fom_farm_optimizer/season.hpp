@@ -13,9 +13,12 @@ class Season {
 
   virtual std::vector<Seed> get_seeds() const;
 
+protected:
+  std::vector<Seed> seeds_;
+
  private:
   uint8_t year_;
-  std::vector<Seed> seeds_;
+  
 };
 
 class Spring : public Season {
