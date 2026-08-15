@@ -50,32 +50,29 @@ int main(int argc, char** argv) {
 
   // Setup equations
   HighsModel model;
+  model.lp_.num_col_ = seeds.size();
+  model.lp_.num_row_ = kNumConstraints;
   model.lp_.sense_ = ObjSense::kMaximize;
 
-  // Setup constraints
-  model.lp_.num_row_ = kNumConstraints;
+  // Reset Vectors
+  model.lp_.col_names_ = {};
+  model.lp_.col_cost_ = {};
+  model.lp_.a_matrix_.start_ = {};
+  model.lp_.a_matrix_.index_ = {};
+  model.lp_.a_matrix_.value_ = {};
+  model.lp_.col_lower_ = {};
+  model.lp_.col_upper_ = {};
+  model.lp_.row_lower_ = {};
+  model.lp_.row_upper_ = {};
 
-  // Constraints Lower Bounds
-  model.lp_.row_lower_.push_back(0);  // Money
-  model.lp_.row_lower_.push_back(0);  // Stamina per Day
-  model.lp_.row_lower_.push_back(0);  // Planting Limit or Space
-
-  // Constraints Upper Bounds
-  model.lp_.row_upper_.push_back(kMoney);          // Money
-  model.lp_.row_upper_.push_back(kStaminaPerDay);  // Stamina per Day
-  model.lp_.row_upper_.push_back(kPlantLimit);     // Planting Limit or Space
-
-  // Setup seed variables
-  model.lp_.num_col_ = seeds.size();
-
-  model.lp_.a_matrix_.format_ = MatrixFormat::kColwise;
-
+  // Debug Logs
   for (const auto& seed : seeds) {
     Seed::Data data = seed.get_data();
     std::cout << "Seed: " << data.name << ", Profit: " << seed.get_profit()
               << std::endl;
   }
 
+  // Setup seed variables
   for (size_t idx = 0; idx < seeds.size(); idx++) {
     Seed::Data data = seeds[idx].get_data();
     model.lp_.col_names_.push_back(data.name);
@@ -83,34 +80,70 @@ int main(int argc, char** argv) {
     // Maximize Profit
     model.lp_.col_cost_.push_back(seeds[idx].get_profit());
 
+    // Seed effects as a flat vector
     model.lp_.a_matrix_.start_.push_back(model.lp_.a_matrix_.index_.size());
 
-    model.lp_.a_matrix_.index_.push_back(0);          // Money Constraint
+    model.lp_.a_matrix_.index_.push_back(0);          // Cost
     model.lp_.a_matrix_.value_.push_back(data.cost);  // Cost per seed
 
-    model.lp_.a_matrix_.index_.push_back(1);  // Stamina Constraint
+    model.lp_.a_matrix_.index_.push_back(1);  // Stamina
     model.lp_.a_matrix_.value_.push_back(2);  // Stamina cost per seed
 
     model.lp_.a_matrix_.index_.push_back(2);  // Planting Limit
     model.lp_.a_matrix_.value_.push_back(1);  // One plant/space per seed
 
     // Set lower and upper bounds for each seed based on user input.
-    // Default 0 to infinity.
     if (bounds_input.empty()) {
       model.lp_.col_lower_.push_back(kDefMinSeeds);
-      model.lp_.col_upper_.push_back(kHighsInf);
+      model.lp_.col_upper_.push_back(kPlantLimit);
     } else {
+      bool b_found = false;
+
       for (const auto& bound : bounds_input) {
         if (std::get<TupleIdx::NAME>(bound) == data.name) {
           model.lp_.col_lower_.push_back(
               std::get<TupleIdx::LOWER_BOUND>(bound));
           model.lp_.col_upper_.push_back(
               std::get<TupleIdx::UPPER_BOUND>(bound));
+          b_found = true;
           break;
         }
       }
+
+      if (!b_found) {
+        model.lp_.col_lower_.push_back(kDefMinSeeds);
+        model.lp_.col_upper_.push_back(kPlantLimit);
+      }
     }
   }
+  // Highs expect num_col_+1 entries for matrix_.start_
+  // This shows number of nonzeros in the last column to be defined
+  model.lp_.a_matrix_.start_.push_back(model.lp_.a_matrix_.index_.size());
+
+  // Setup constraints
+  model.lp_.a_matrix_.format_ = MatrixFormat::kColwise;
+
+  // Constraints Lower Bounds
+  model.lp_.row_lower_.push_back(0);  // Budget
+  model.lp_.row_lower_.push_back(0);  // Stamina per Day
+  model.lp_.row_lower_.push_back(0);  // Planting Limit or Space
+
+  // Constraints Upper Bounds
+  model.lp_.row_upper_.push_back(kMoney);          // Budget
+  model.lp_.row_upper_.push_back(kStaminaPerDay);  // Stamina per Day
+  model.lp_.row_upper_.push_back(kPlantLimit);     // Planting Limit or Space
+
+  // Integrality
+  for (int col = 0; col < model.lp_.num_col_; col++) {
+    model.lp_.integrality_.push_back(HighsVarType::kInteger);
+  }
+
+  // Checks prior to passing the model
+  assert(model.lp_.a_matrix_.start_.size() ==
+         static_cast<size_t>(model.lp_.num_col_) + 1);
+  assert(model.lp_.a_matrix_.start_.front() == 0);
+  assert(model.lp_.a_matrix_.start_.back() ==
+         static_cast<HighsInt>(model.lp_.a_matrix_.index_.size()));
 
   // Solve the optimization problem
   Highs highs;
@@ -139,12 +172,25 @@ int main(int argc, char** argv) {
             << std::endl;
 
   // Print Solution
+  std::cout << "----------\n";
   const std::vector<double>& solution = highs.getSolution().col_value;
   for (size_t idx = 0; idx < solution.size(); idx++) {
     if (solution[idx] > 0) {
       std::cout << "Plant " << solution[idx] << " of " << lp.col_names_[idx]
                 << std::endl;
     }
+  }
+  std::cout << "----------\n";
+
+  HighsSparseMatrix rowwise = lp.a_matrix_;
+  rowwise.ensureRowwise();
+  for (int row = 0; row < lp.num_row_; row++) {
+    double activity = 0.0;
+    for (int k = rowwise.start_[row]; k < rowwise.start_[row + 1]; k++) {
+      activity += rowwise.value_[k] * solution[rowwise.index_[k]];
+    }
+    std::cout << "row " << row << ": activity = " << activity << ", bounds = ["
+              << lp.row_lower_[row] << ", " << lp.row_upper_[row] << "]\n";
   }
 
   return 0;
