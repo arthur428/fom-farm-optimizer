@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <memory>
 #include <tuple>
 #include <vector>
 
@@ -6,6 +7,7 @@
 #include "highs/Highs.h"
 
 enum TupleIdx { NAME = 0, LOWER_BOUND, UPPER_BOUND };
+enum Seasons { SPRING = 0, SUMMER, FALL, WINTER };
 
 // Possible User Inputs
 const int64_t kMoney = 100000;
@@ -25,8 +27,24 @@ std::vector<std::tuple<std::string, double, double>> bounds_input = {
 
 int main(int argc, char** argv) {
   // Setup "environment" for optimization
-  std::vector<Seed> seeds = Summer(kYear).get_seeds();
-  uint8_t planning_days = kTotalDays - kCurrentDay + 1;
+  std::unique_ptr<Season> p_season = nullptr;
+  switch (kCurrentSeason) {
+    case (Seasons::SPRING):
+      p_season = std::make_unique<Spring>(kYear);
+      break;
+    case (Seasons::SUMMER):
+      p_season = std::make_unique<Summer>(kYear);
+      break;
+    case (Seasons::FALL):
+      p_season = std::make_unique<Fall>(kYear);
+      break;
+    case (Seasons::WINTER):
+      p_season = std::make_unique<Winter>(kYear);
+      break;
+    default:
+      return 1;
+  }
+  std::vector<Seed> seeds = p_season->get_seeds();
 
   // Calculate profit per seed
   for (size_t idx = 0; idx < seeds.size(); idx++) {
