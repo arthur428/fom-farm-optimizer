@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <tuple>
 #include <vector>
 
@@ -34,16 +35,14 @@ int main(int argc, char** argv) {
     uint8_t harvests = 0;
     bool b_can_harvest = (planning_days >= data.growth_days);
 
+    if (b_can_harvest) {
     if (data.regrowth_days > 0) {
-      if (b_can_harvest) {
         harvests = 1 + (planning_days - data.growth_days) / data.regrowth_days;
-      }
     } else {
-      if (b_can_harvest) {
         harvests = planning_days / data.growth_days;
       }
+      seeds[idx].set_profit(static_cast<int32_t>((data.sell_price * harvests)) - data.cost);
     }
-    seeds[idx].set_profit(data.sell_price * harvests - data.cost);
   }
 
   const size_t kNumConstraints = 3;  // Money, Stamina, and Planting Limit
