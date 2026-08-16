@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <tuple>
@@ -7,6 +8,7 @@
 #include "highs/Highs.h"
 
 enum TupleIdx { NAME = 0, LOWER_BOUND, UPPER_BOUND };
+enum ConstraintIdx { BUDGET = 0, STAMINA, PLANT_LIMIT };
 enum Seasons { SPRING = 0, SUMMER, FALL, WINTER };
 
 // Possible User Inputs
@@ -17,8 +19,9 @@ const uint8_t kYear = 1;
 const uint8_t kPlantLimit = 100;
 const uint8_t kDefMinSeeds = 0;
 
-// General Constant
+// General Constants
 const uint8_t kTotalDays = 28;
+const std::vector<std::string> kTrees = {"Apple", "Orange", "Pear", "Peach"};
 
 // Control lower and upper bounds for specific seeds (0 to infinity)
 std::vector<std::tuple<std::string, double, double>> bounds_input = {
@@ -45,6 +48,7 @@ int main(int argc, char** argv) {
       return 1;
   }
   std::vector<Seed> seeds = p_season->get_seeds();
+  uint8_t planning_days = kTotalDays - kCurrentDay;
 
   // Calculate profit per seed
   for (size_t idx = 0; idx < seeds.size(); idx++) {
@@ -59,7 +63,8 @@ int main(int argc, char** argv) {
     } else {
         harvests = planning_days / data.growth_days;
       }
-      seeds[idx].set_profit(static_cast<int32_t>((data.sell_price * harvests)) - data.cost);
+      seeds[idx].set_profit(static_cast<int32_t>((data.sell_price * harvests)) -
+                            data.cost);
     }
   }
 
@@ -104,7 +109,11 @@ int main(int argc, char** argv) {
     model.lp_.a_matrix_.value_.push_back(data.cost);  // Cost per seed
 
     model.lp_.a_matrix_.index_.push_back(1);  // Stamina
-    model.lp_.a_matrix_.value_.push_back(2);  // Stamina cost per seed
+    if (std::find(kTrees.begin(), kTrees.end(), data.name) == kTrees.end()) {
+      model.lp_.a_matrix_.value_.push_back(2);  // Watering only
+    } else {
+      model.lp_.a_matrix_.value_.push_back(0);  // No stamina required for trees
+    }
 
     model.lp_.a_matrix_.index_.push_back(2);  // Planting Limit
     model.lp_.a_matrix_.value_.push_back(1);  // One plant/space per seed
@@ -206,7 +215,22 @@ int main(int argc, char** argv) {
     for (int k = rowwise.start_[row]; k < rowwise.start_[row + 1]; k++) {
       activity += rowwise.value_[k] * solution[rowwise.index_[k]];
     }
-    std::cout << "row " << row << ": activity = " << activity << ", bounds = ["
+
+    std::string activity_name;
+    switch (row) {
+      case (ConstraintIdx::BUDGET):
+        activity_name = "Budget";
+        break;
+      case (ConstraintIdx::STAMINA):
+        activity_name = "Stamina";
+        break;
+      case (ConstraintIdx::PLANT_LIMIT):
+        activity_name = "Num Plants";
+        break;
+      default:
+        break;
+    }
+    std::cout << activity_name << " = " << activity << ", bounds = ["
               << lp.row_lower_[row] << ", " << lp.row_upper_[row] << "]\n";
   }
 
