@@ -28,6 +28,7 @@ Fall::Fall(const uint8_t & year) : Season()
 {
   (void)year;
 
+  // Name, Cost, Growth, Regrowth, Sell Price
   seeds_ = {
     {{"Sweet Potato", 25, 4, 0, 40}},
     {{"Broccoli", 40, 6, 0, 75}},
@@ -41,4 +42,17 @@ Fall::Fall(const uint8_t & year) : Season()
     // {{"Apple", 400, 14, 3, 45 * 3}},
     // {{"Orange", 400, 14, 3, 45 * 3}}
   };
+}
+
+Winter::Winter(const uint8_t& year) : Season() {
+  (void)year;
+
+  // Name, Cost, Growth, Regrowth, Sell Price
+  seeds_ = {{{"Beet", 25, 4, 0, 40}},
+            {{"Cauliflower", 40, 6, 0, 75}},
+            {{"Snow Peas", 300, 5, 3, 125}},
+            {{"Daikon Radish", 70, 9, 0, 180}},
+            {{"Frost Lily", 15, 4, 0, 25}},
+            {{"Poinsettia", 20, 6, 0, 30}},
+            {{"Pomegranate", 400, 14, 3, 45 * 3}}};
 }
